@@ -1,16 +1,12 @@
 ﻿using SmartFormat;
-using System;
 using System.Collections.Generic;
 using System.Data.Entity;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SqlTableDropper
 {
     public class TableDropper
     {
-
         private string _connectionString;
 
         private TargetDb _database;
@@ -30,7 +26,6 @@ namespace SqlTableDropper
         private string _dropPkQuery = @"ALTER TABLE {table} DROP CONSTRAINT {primary_key}";
 
         private string _dropTableQuery = @"DROP TABLE {table}";
-
 
         public TableDropper(string connectionString)
         {
@@ -103,7 +98,6 @@ namespace SqlTableDropper
             }
         }
 
-
         private List<Table> discoverTables()
         {
             return sqlQuery<Table>(_selectTablesQuery).ToList();
@@ -119,7 +113,6 @@ namespace SqlTableDropper
             return sqlQuery<ForeignKey>(_selectFkQuery).ToList();
         }
 
-
         private List<T> sqlQuery<T>(string query)
         {
             using (var db = context())
@@ -127,7 +120,6 @@ namespace SqlTableDropper
                 return db.Database.SqlQuery<T>(query).ToList();
             }
         }
-
 
         /// <summary>
         /// Drops specified tables along with foreign keys, primary keys and unique constraints.
@@ -138,30 +130,19 @@ namespace SqlTableDropper
         public void DropTables(params string[] tableNames)
         {
             var tgtTables = _database.Tables.Where(t =>
-                tableNames.Any(tn => tn.ToLower() == t.Name.ToLower()));
+                tableNames.Any(tn => tn.ToLower() == t.Name.ToLower()))
+                .ToList();
 
-            foreach (var t in tgtTables)
-            {
-                dropForeignKey(t);
-            }
-
-            foreach (var t in tgtTables)
-            {
-                dropPrimaryKeys(t);
-            }
+            tgtTables.ForEach(t => dropForeignKey(t));
+            tgtTables.ForEach(t => dropPrimaryKeys(t));
             dropTables(tgtTables.ToList());
         }
 
-
-
         private void dropPrimaryKeys(Table table)
         {
-            foreach (var pk in table.PrimaryKeys)
-            {
-                dropPrimaryKey(table.Name, pk.KeyName);
-            }
+            table.PrimaryKeys.ForEach(pk =>
+                dropPrimaryKey(table.Name, pk.KeyName));
         }
-
 
         private void dropPrimaryKey(string tableName, string primaryKeyName)
         {
@@ -169,15 +150,11 @@ namespace SqlTableDropper
                 new { table = tableName, primary_key = primaryKeyName }));
         }
 
-
         private void dropForeignKey(Table table)
         {
-            foreach (var fk in table.ForeignKeys)
-            {
-                dropForeignKey(table.Name, fk.KeyName);
-            }
+            table.ForeignKeys.ForEach(fk =>
+                dropForeignKey(table.Name, fk.KeyName));
         }
-
 
         private void dropForeignKey(string tableName, string foreignKeyName)
         {
@@ -187,10 +164,7 @@ namespace SqlTableDropper
 
         private void dropTables(List<Table> tables)
         {
-            foreach (var t in tables)
-            {
-                dropTable(t);
-            }
+            tables.ForEach(t => dropTable(t));
         }
 
         private void dropTable(Table table)
@@ -211,23 +185,21 @@ namespace SqlTableDropper
                 db.Database.ExecuteSqlCommand(sql);
             }
         }
-
-
-
-
     }
-
 
     public class TargetDb
     {
         public string DbName { get; set; }
+
         public List<Table> Tables { get; set; }
     }
 
     public class Table
     {
         public string Name { get; set; }
+
         public List<PrimaryKey> PrimaryKeys { get; set; }
+
         public List<ForeignKey> ForeignKeys { get; set; }
 
         public Table()
@@ -240,12 +212,14 @@ namespace SqlTableDropper
     public class PrimaryKey
     {
         public string KeyName { get; set; }
+
         public string TableName { get; set; }
     }
 
     public class ForeignKey
     {
         public string KeyName { get; set; }
+
         public string TableName { get; set; }
     }
 }
